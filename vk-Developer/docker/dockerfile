@@ -1,0 +1,34 @@
+# Этап сборки Go-приложения
+FROM golang:1.21-alpine AS go-builder
+RUN apk add --no-cache ffmpeg
+WORKDIR /app
+COPY go/preprocessor /app
+RUN go build -o /go-preprocessor
+
+# Основной образ
+FROM python:3.10-slim
+WORKDIR /app
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копируем Go-бинарник
+COPY --from=go-builder /go-preprocessor /usr/local/bin/go-preprocessor
+
+# Копируем Python-код
+COPY python /app/python
+COPY docker/requirements.txt /app
+COPY config.yaml /app
+
+# Устанавливаем Python-зависимости
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Переменные окружения
+ENV PYTHONPATH=/app
+ENV CONFIG_PATH=/app/config.yaml
+
+ENTRYPOINT ["python", "/app/python/detector.py"]

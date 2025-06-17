@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  intro-detector:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./data:/data
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+    command: --input /data/videos --output /data/results.json
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
